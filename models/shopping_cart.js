@@ -1,4 +1,5 @@
 const { supabase } = require('../util/database');
+const product = require('./product');
 
 class shopping_cart{
     constructor(cartid, userid, totalamount) {
@@ -30,6 +31,36 @@ class shopping_cart{
             .insert([{ userid, totalamount }])
             .select('cartid, userid, totalamount')
             .single();
+        if (error) throw error;
+        return new shopping_cart(data.cartid, data.userid, data.totalamount);
+    }
+
+    static async findByCartId(cartid) {
+        const { data, error } = await supabase
+            .from('shopping_cart')
+            .select('cartid, userid, totalamount')
+            .eq('cartid', cartid)
+            .single();
+        if (error) throw error;
+        return data ? new shopping_cart(data.cartid, data.userid, data.totalamount) : null;
+    }
+
+    static async incrementTotalAmount(cartid, amount) {
+        const cart = await shopping_cart.findByCartId(cartid);
+        if (!cart) {
+            const error = new Error('Cart not found');
+            error.status = 404;
+            throw error;
+        }
+
+        const newTotal = Number(cart.totalamount) + Number(amount);
+        const { data, error } = await supabase
+            .from('shopping_cart')
+            .update({ totalamount: newTotal })
+            .eq('cartid', cartid)
+            .select('cartid, userid, totalamount')
+            .single();
+
         if (error) throw error;
         return new shopping_cart(data.cartid, data.userid, data.totalamount);
     }

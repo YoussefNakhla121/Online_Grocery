@@ -1,4 +1,5 @@
 const { shopping_cart, cart_item } = require('../models/shopping_cart');
+const productModel = require('../models/product');
 
 async function createCart(req, res) {
     const { userid, totalamount } = req.body;
@@ -17,13 +18,21 @@ async function createCart(req, res) {
 async function addItem(req, res) {
     const { userid } = req.params;
     const { productid, quantity } = req.body;
+    const qty = Number(quantity);
 
-    if (!productid || !quantity) {
-        return res.status(400).json({ error: 'productid and quantity are required' });
+    if (!productid || qty <= 0 || Number.isNaN(qty)) {
+        return res.status(400).json({ error: 'productid and a valid quantity are required' });
     }
 
     try {
-        const addedItem = await cart_item.addItemToUserCart(userid, productid, quantity);
+        const product = await productModel.getProductById(productid);
+        if (!product) {
+            return res.status(404).json({ error: 'Product not found' });
+        }
+
+        const addedItem = await cart_item.addItemToUserCart(userid, productid, qty);
+        await shopping_cart.incrementTotalAmount(addedItem.cartid, product.price * qty);
+
         return res.status(201).json(addedItem);
     } catch (error) {
         return res.status(error.status || 500).json({ error: error.message || 'Unable to add item to cart' });
