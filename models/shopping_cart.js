@@ -74,13 +74,37 @@ class cart_item {
         this.quantity = quantity;
     }
     static async addItem(cartid, productid, quantity) {
-        const { data, error } = await supabase
+        // Check if item already exists in cart
+        const { data: existing, error: fetchError } = await supabase
             .from('cart_items')
-            .insert([{ cartid, productid, quantity }])
-            .select()
-            .single();
-        if (error) throw error;
-        return new cart_item(cartid, productid, quantity);
+            .select('cartid, productid, quantity')
+            .eq('cartid', cartid)
+            .eq('productid', productid)
+            .maybeSingle();
+        if (fetchError) throw fetchError;
+
+        if (existing) {
+            // Update existing item quantity
+            const newQty = existing.quantity + quantity;
+            const { data, error } = await supabase
+                .from('cart_items')
+                .update({ quantity: newQty })
+                .eq('cartid', cartid)
+                .eq('productid', productid)
+                .select()
+                .single();
+            if (error) throw error;
+            return new cart_item(data.cartid, data.productid, data.quantity);
+        } else {
+            // Insert new item
+            const { data, error } = await supabase
+                .from('cart_items')
+                .insert([{ cartid, productid, quantity }])
+                .select()
+                .single();
+            if (error) throw error;
+            return new cart_item(data.cartid, data.productid, data.quantity);
+        }
     }
 
     static async getItemsByCartId(cartid) {
@@ -98,19 +122,17 @@ class cart_item {
     static async getItemsByUserCartId(userid) {
         const cart = await shopping_cart.findByUserId(userid);
         if (!cart) {
-            const error = new Error('Cart not found for user');
-            error.status = 404;
-            throw error;
+            // No cart yet — return empty array instead of erroring
+            return [];
         }
         return cart_item.getItemsByCartId(cart.cartid);
     }
 
     static async addItemToUserCart(userid, productid, quantity) {
-        const cart = await shopping_cart.findByUserId(userid);
+        let cart = await shopping_cart.findByUserId(userid);
         if (!cart) {
-            const error = new Error('Cart not found for user');
-            error.status = 404;
-            throw error;
+            // Auto-create a cart for the user
+            cart = await shopping_cart.createCart(userid, 0);
         }
         return cart_item.addItem(cart.cartid, productid, quantity);
     }

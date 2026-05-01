@@ -1,7 +1,9 @@
 const { supabase } = require('../util/database');
 
 class product {
-    constructor(name,price,category,description) {
+    constructor(productid, name, price, category, description) {
+        this.id = productid;
+        this.productid = productid;
         this.name = name;
         this.price = price;
         this.category = category;
@@ -12,7 +14,7 @@ class product {
             .from('product')
             .select('*');
         if (error) throw error;
-        return data.map(p => new product(p.name, p.price, p.category, p.description));
+        return data.map(p => new product(p.productid, p.name, p.price, p.category, p.description));
     }
 
     static async getAllProductsByCategory(category) {
@@ -21,7 +23,7 @@ class product {
             .select('*')
             .eq('category', category);
         if (error) throw error;
-        return data.map(p => new product(p.name, p.price, p.category, p.description));
+        return data.map(p => new product(p.productid, p.name, p.price, p.category, p.description));
     }
 
     static async getProductById(productid) {
@@ -31,7 +33,7 @@ class product {
             .eq('productid', productid)
             .single();
         if (error) throw error;
-        return new product(data.name, data.price, data.category, data.description);
+        return new product(data.productid, data.name, data.price, data.category, data.description);
     }
 
     static async createProduct(name, price, category, description) {
@@ -41,7 +43,7 @@ class product {
             .select()
             .single();
         if (error) throw error;
-        return new product(data.name, data.price, data.category, data.description);
+        return new product(data.productid, data.name, data.price, data.category, data.description);
     }
 
 }

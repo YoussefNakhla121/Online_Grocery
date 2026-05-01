@@ -16,21 +16,22 @@ async function createCart(req, res) {
 }
 
 async function addItem(req, res) {
-    const { userid } = req.params;
+    const userid = Number(req.params.userid);
     const { productid, quantity } = req.body;
+    const pid = Number(productid);
     const qty = Number(quantity);
 
-    if (!productid || qty <= 0 || Number.isNaN(qty)) {
+    if (!pid || Number.isNaN(pid) || qty <= 0 || Number.isNaN(qty)) {
         return res.status(400).json({ error: 'productid and a valid quantity are required' });
     }
 
     try {
-        const product = await productModel.getProductById(productid);
+        const product = await productModel.getProductById(pid);
         if (!product) {
             return res.status(404).json({ error: 'Product not found' });
         }
 
-        const addedItem = await cart_item.addItemToUserCart(userid, productid, qty);
+        const addedItem = await cart_item.addItemToUserCart(userid, pid, qty);
         await shopping_cart.incrementTotalAmount(addedItem.cartid, product.price * qty);
 
         return res.status(201).json(addedItem);
@@ -41,7 +42,7 @@ async function addItem(req, res) {
 
 async function getCartItems(req, res) {
     try {
-        const { userid } = req.params;
+        const userid = Number(req.params.userid);
         const items = await cart_item.getItemsByUserCartId(userid);
         return res.status(200).json(items);
     } catch (error) {

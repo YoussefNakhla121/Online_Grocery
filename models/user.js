@@ -25,7 +25,6 @@ class user {
             .single();
         if (error) throw error;
         if (!data) throw new Error('Invalid email or password');
-        console.log('>>> Supabase user data keys:', Object.keys(data), data);
         return new user(data.userid, data.email, data.password);
     }
 

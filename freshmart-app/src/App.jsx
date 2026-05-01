@@ -2229,8 +2229,23 @@ export default function App() {
         const user = await api.login(email, password);
         if (!user) throw new Error("Invalid credentials");
         setUser(user);
+        // Load cart items and enrich with full product details
         const cartData = await api.getCart(user.id);
-        setCart(cartData || []);
+        if (cartData && cartData.length > 0) {
+            const enrichedCart = await Promise.all(
+                cartData.map(async (item) => {
+                    const product = await api.getProduct(item.productid);
+                    return {
+                        id: item.productid,
+                        product: product || { id: item.productid, name: "Unknown", price: 0 },
+                        quantity: item.quantity,
+                    };
+                })
+            );
+            setCart(enrichedCart);
+        } else {
+            setCart([]);
+        }
     };
 
     const register = async (userData) => {
@@ -2246,12 +2261,22 @@ export default function App() {
 
     const addToCart = async (product, quantity) => {
         if (user) {
-            const updatedCart = await api.addToCart(
-                user.id,
-                product.id,
-                quantity,
-            );
-            setCart(updatedCart);
+            // Call the API to persist the item (fire-and-forget result shape)
+            await api.addToCart(user.id, product.id, quantity);
+            // Update local cart state — backend returns a single item, not the full cart,
+            // so we manage the cart array ourselves (same logic as guest path below).
+            setCart((prev) => {
+                const existing = prev.find(
+                    (item) => item.product?.id === product.id,
+                );
+                if (existing)
+                    return prev.map((item) =>
+                        item.product?.id === product.id
+                            ? { ...item, quantity: item.quantity + quantity }
+                            : item,
+                    );
+                return [...prev, { id: Date.now(), product, quantity }];
+            });
         } else {
             // Local state cart for guest
             setCart((prev) => {
