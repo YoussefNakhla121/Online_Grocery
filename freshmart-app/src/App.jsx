@@ -312,6 +312,12 @@ const api = {
         const res = await this.safeFetch(`/orders/${userId}`);
         return res || [];
     },
+    async deleteOrder(orderId) {
+        const res = await this.safeFetch(`/orders/${orderId}`, {
+            method: "DELETE",
+        });
+        return res !== null;
+    },
 };
 
 // --- CONTEXTS ---
@@ -2277,6 +2283,22 @@ const OrderHistory = () => {
     const { navigate } = useContext(RouterContext);
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [deletingOrderId, setDeletingOrderId] = useState(null);
+
+    const handleCancelOrder = async (orderId) => {
+        if (!window.confirm("Cancel this order? This will remove it from your history.")) {
+            return;
+        }
+        setDeletingOrderId(orderId);
+        try {
+            await api.deleteOrder(orderId);
+            setOrders((prev) => prev.filter((order) => order.orderid !== orderId));
+        } catch (error) {
+            console.error("Unable to cancel order:", error);
+        } finally {
+            setDeletingOrderId(null);
+        }
+    };
 
     useEffect(() => {
         if (user) {
@@ -2359,13 +2381,23 @@ const OrderHistory = () => {
                                     </p>
                                 </div>
                             </div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex items-center gap-4 flex-wrap">
                                 <span className="px-3 py-1 bg-green-50 text-[#739e54] rounded-full text-xs font-medium border border-green-200">
                                     Completed
                                 </span>
                                 <span className="text-lg font-bold text-[#9b2c2c]">
                                     ${Number(order.totalprice).toFixed(2)}
                                 </span>
+                                <Button
+                                    variant="outline"
+                                    className="text-red-600 border-red-200 hover:bg-red-50"
+                                    onClick={() => handleCancelOrder(order.orderid)}
+                                    disabled={deletingOrderId === order.orderid}
+                                >
+                                    {deletingOrderId === order.orderid
+                                        ? "Cancelling..."
+                                        : "Cancel Order"}
+                                </Button>
                             </div>
                         </div>
 

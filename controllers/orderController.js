@@ -88,4 +88,22 @@ async function getOrders(req, res) {
     }
 }
 
-module.exports = { placeOrder, getOrders };
+async function cancelOrder(req, res) {
+    const orderid = Number(req.params.orderid);
+
+    try {
+        const order = await Order.getOrderById(orderid);
+        if (!order) {
+            return res.status(404).json({ error: 'Order not found' });
+        }
+
+        await OrderItem.deleteItemsByOrderId(orderid);
+        await Order.deleteOrderById(orderid);
+
+        return res.status(200).json({ message: 'Order cancelled successfully' });
+    } catch (error) {
+        return res.status(error.status || 500).json({ error: error.message || 'Unable to cancel order' });
+    }
+}
+
+module.exports = { placeOrder, getOrders, cancelOrder };

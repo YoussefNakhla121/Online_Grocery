@@ -37,6 +37,15 @@ class Order {
         if (error) throw error;
         return new Order(data.orderid, data.userid, data.orderdate, data.totalprice);
     }
+
+    static async deleteOrderById(orderid) {
+        const { error } = await supabase
+            .from('order')
+            .delete()
+            .eq('orderid', orderid);
+        if (error) throw error;
+        return true;
+    }
 }
 
 class OrderItem {
@@ -68,6 +77,15 @@ class OrderItem {
             .eq('orderid', orderid);
         if (error) throw error;
         return data.map(i => new OrderItem(i.orderid, i.productid, i.quantity));
+    }
+
+    static async deleteItemsByOrderId(orderid) {
+        const { error } = await supabase
+            .from('order_items')
+            .delete()
+            .eq('orderid', orderid);
+        if (error) throw error;
+        return true;
     }
 }
 
