@@ -1360,8 +1360,7 @@ const Checkout = () => {
                                     const result = await api.placeOrder(user.id);
                                     if (result && result.message) {
                                         clearCart();
-                                        alert("Order saved successfully!");
-                                        navigate("home");
+                                        navigate("order-success");
                                     } else {
                                         alert("Failed to place order. Please try again.");
                                     }
@@ -1377,6 +1376,40 @@ const Checkout = () => {
                         </p>
                     </div>
                 </div>
+            </div>
+        </div>
+    );
+};
+
+const OrderSuccess = () => {
+    const { navigate } = useContext(RouterContext);
+    
+    return (
+        <div className="max-w-4xl mx-auto px-6 py-24 text-center">
+            <div className="w-24 h-24 bg-[#739e54]/10 rounded-full flex items-center justify-center mx-auto mb-8">
+                <Check className="w-12 h-12 text-[#739e54]" />
+            </div>
+            <h2 className="text-4xl font-bold text-gray-800 mb-4">
+                Order Placed Successfully!
+            </h2>
+            <p className="text-lg text-gray-600 mb-10 max-w-lg mx-auto">
+                Thank you for your purchase. Your order has been received and is being processed. You can track its status in your orders history.
+            </p>
+            <div className="flex flex-col sm:flex-row justify-center gap-4">
+                <Button 
+                    className="bg-[#739e54] min-w-[200px] text-lg py-3 flex justify-center items-center gap-2"
+                    onClick={() => navigate("orders")}
+                >
+                    <Package className="w-5 h-5" />
+                    View Orders
+                </Button>
+                <Button 
+                    variant="outline" 
+                    className="min-w-[200px] text-lg py-3"
+                    onClick={() => navigate("home")}
+                >
+                    Continue Shopping
+                </Button>
             </div>
         </div>
     );
@@ -2477,6 +2510,8 @@ export default function App() {
                 return <Cart />;
             case "checkout":
                 return <Checkout />;
+            case "order-success":
+                return <OrderSuccess />;
             case "profile":
                 return <Profile />;
             case "login":
