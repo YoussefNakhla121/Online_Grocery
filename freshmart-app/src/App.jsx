@@ -302,6 +302,16 @@ const api = {
         });
         return res;
     },
+    async placeOrder(userId) {
+        const res = await this.safeFetch(`/orders/${userId}`, {
+            method: "POST",
+        });
+        return res;
+    },
+    async getOrders(userId) {
+        const res = await this.safeFetch(`/orders/${userId}`);
+        return res || [];
+    },
 };
 
 // --- CONTEXTS ---
@@ -1341,10 +1351,23 @@ const Checkout = () => {
                             className="w-full bg-[#739e54] py-3 text-lg"
                             variant="secondary"
                             onClick={async () => {
-                                if (user) await api.clearCart(user.id);
-                                clearCart();
-                                alert("Order Placed Successfully!");
-                                navigate("home");
+                                if (!user) {
+                                    alert("Please login to place an order.");
+                                    navigate("login");
+                                    return;
+                                }
+                                try {
+                                    const result = await api.placeOrder(user.id);
+                                    if (result && result.message) {
+                                        clearCart();
+                                        alert("Order saved successfully!");
+                                        navigate("home");
+                                    } else {
+                                        alert("Failed to place order. Please try again.");
+                                    }
+                                } catch (err) {
+                                    alert("Error placing order: " + (err.message || "Unknown error"));
+                                }
                             }}>
                             Confirm Order
                         </Button>
@@ -1410,13 +1433,14 @@ const Profile = () => {
                     </h3>
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-100">
                         {[
-                            "Order History",
-                            "Track Order",
-                            "Saved Addresses",
-                            "Payment Methods",
+                            { label: "Order History", route: "orders" },
+                            { label: "Track Order", route: null },
+                            { label: "Saved Addresses", route: null },
+                            { label: "Payment Methods", route: null },
                         ].map((item, i) => (
                             <button
                                 key={i}
+                                onClick={() => item.route && navigate(item.route)}
                                 className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition text-sm font-medium text-gray-700">
                                 <div className="flex items-center gap-3">
                                     {i === 0 && (
@@ -1431,7 +1455,7 @@ const Profile = () => {
                                     {i === 3 && (
                                         <CreditCard className="w-5 h-5 text-orange-500" />
                                     )}
-                                    {item}
+                                    {item.label}
                                 </div>
                                 <ChevronRight className="w-4 h-4 text-gray-400" />
                             </button>
@@ -2213,6 +2237,137 @@ const AdminLayout = () => {
     );
 };
 
+// --- ORDER HISTORY ---
+
+const OrderHistory = () => {
+    const { user } = useContext(AuthContext);
+    const { navigate } = useContext(RouterContext);
+    const [orders, setOrders] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (user) {
+            api.getOrders(user.id)
+                .then((data) => setOrders(data))
+                .finally(() => setLoading(false));
+        } else {
+            setLoading(false);
+        }
+    }, [user]);
+
+    if (!user) {
+        return (
+            <div className="max-w-7xl mx-auto px-6 py-20 text-center">
+                <Package className="w-20 h-20 mx-auto text-gray-300 mb-6" />
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                    Please login to view your orders
+                </h2>
+                <Button onClick={() => navigate("login")}>Login</Button>
+            </div>
+        );
+    }
+
+    if (loading) {
+        return (
+            <div className="max-w-7xl mx-auto px-6 py-20 text-center">
+                <div className="animate-pulse text-gray-500 text-lg">Loading orders...</div>
+            </div>
+        );
+    }
+
+    if (orders.length === 0) {
+        return (
+            <div className="max-w-7xl mx-auto px-6 py-20 text-center">
+                <Package className="w-20 h-20 mx-auto text-gray-300 mb-6" />
+                <h2 className="text-2xl font-bold text-gray-800 mb-4">
+                    No orders yet
+                </h2>
+                <p className="text-gray-500 mb-8">
+                    Start shopping to see your order history here.
+                </p>
+                <Button onClick={() => navigate("home")}>Start Shopping</Button>
+            </div>
+        );
+    }
+
+    return (
+        <div className="max-w-7xl mx-auto px-6 py-8">
+            <div className="flex items-center gap-3 mb-8">
+                <Button variant="outline" onClick={() => navigate("profile")}>
+                    <ArrowLeft className="w-4 h-4 mr-2" />
+                    Profile
+                </Button>
+                <h2 className="text-2xl font-bold text-gray-800">
+                    Order History
+                </h2>
+            </div>
+
+            <div className="space-y-6">
+                {orders.map((order) => (
+                    <div
+                        key={order.orderid}
+                        className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        {/* Order Header */}
+                        <div className="bg-gray-50 px-6 py-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-gray-100">
+                            <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-[#739e54] bg-opacity-10 flex items-center justify-center">
+                                    <Package className="w-5 h-5 text-[#739e54]" />
+                                </div>
+                                <div>
+                                    <span className="font-bold text-gray-800">
+                                        Order #{order.orderid}
+                                    </span>
+                                    <p className="text-xs text-gray-500">
+                                        {new Date(order.orderdate).toLocaleDateString("en-US", {
+                                            year: "numeric",
+                                            month: "long",
+                                            day: "numeric",
+                                        })}
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center gap-4">
+                                <span className="px-3 py-1 bg-green-50 text-[#739e54] rounded-full text-xs font-medium border border-green-200">
+                                    Completed
+                                </span>
+                                <span className="text-lg font-bold text-[#9b2c2c]">
+                                    ${Number(order.totalprice).toFixed(2)}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Order Items */}
+                        <div className="divide-y divide-gray-50">
+                            {(order.items || []).map((item, idx) => (
+                                <div
+                                    key={idx}
+                                    className="px-6 py-3 flex items-center justify-between">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-8 h-8 rounded bg-gray-100 flex items-center justify-center text-gray-400">
+                                            <Box className="w-4 h-4" />
+                                        </div>
+                                        <div>
+                                            <span className="text-sm font-medium text-gray-800">
+                                                {item.productname}
+                                            </span>
+                                            <span className="text-xs text-gray-400 ml-2">
+                                                × {item.quantity}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <span className="text-sm font-medium text-gray-700">
+                                        ${(item.price * item.quantity).toFixed(2)}
+                                    </span>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                ))}
+            </div>
+        </div>
+    );
+};
+
 // --- APP CONTAINER ---
 
 export default function App() {
@@ -2328,6 +2483,8 @@ export default function App() {
                 return <AuthScreen isLogin={true} />;
             case "signup":
                 return <AuthScreen isLogin={false} />;
+            case "orders":
+                return <OrderHistory />;
             case "admin":
                 return <AdminLayout />;
             default:

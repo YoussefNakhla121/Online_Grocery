@@ -136,6 +136,25 @@ class cart_item {
         }
         return cart_item.addItem(cart.cartid, productid, quantity);
     }
+
+    static async clearCartByUser(userid) {
+        const cart = await shopping_cart.findByUserId(userid);
+        if (!cart) return;
+
+        // Delete all cart items
+        const { error: deleteError } = await supabase
+            .from('cart_items')
+            .delete()
+            .eq('cartid', cart.cartid);
+        if (deleteError) throw deleteError;
+
+        // Reset cart total
+        const { error: updateError } = await supabase
+            .from('shopping_cart')
+            .update({ totalamount: 0 })
+            .eq('cartid', cart.cartid);
+        if (updateError) throw updateError;
+    }
 }
 
 module.exports = { shopping_cart, cart_item };
