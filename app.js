@@ -9,14 +9,21 @@ const app = express();
 
 app.use(bodyParser.json());
 app.use(express.static(path.join(__dirname, 'public')));
-app.use('/api', routes);
 
+// CORS — must be before routes
 app.use((req, res, next) => {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'OPTIONS, GET, POST, PUT, PATCH, DELETE');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+    if (req.method === 'OPTIONS') {
+        return res.sendStatus(204); // respond to preflight immediately
+    }
     next();
 });
+
+app.use('/api', routes);
+
+
 
 app.get('/health', async (req, res) => {
     try {

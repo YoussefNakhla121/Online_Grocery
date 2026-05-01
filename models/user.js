@@ -1,7 +1,8 @@
 const { supabase } = require('../util/database');
 
 class user {
-    constructor(email,password) {
+    constructor(id, email, password) {
+        this.id = id;
         this.email = email;
         this.password = password;
     }
@@ -12,7 +13,7 @@ class user {
             .select()
             .single();
         if (error) throw error;
-        return new user(email, password);
+        return new user(data.userid, data.email, data.password);
     }
 
     static async login(email, password) {
@@ -23,7 +24,9 @@ class user {
             .eq('password', password)
             .single();
         if (error) throw error;
-        return new user(data.email, data.password);
+        if (!data) throw new Error('Invalid email or password');
+        console.log('>>> Supabase user data keys:', Object.keys(data), data);
+        return new user(data.userid, data.email, data.password);
     }
 
 }
