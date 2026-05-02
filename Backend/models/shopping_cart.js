@@ -119,6 +119,30 @@ class cart_item {
         }));
     }
 
+    static async updateQuantity(cartid, productid, quantity) {
+        const { data, error } = await supabase
+            .from('cart_items')
+            .update({ quantity })
+            .eq('cartid', cartid)
+            .eq('productid', productid)
+            .select()
+            .single();
+        if (error) throw error;
+        return new cart_item(data.cartid, data.productid, data.quantity);
+    }
+
+    static async removeItem(cartid, productid) {
+        const { data, error } = await supabase
+            .from('cart_items')
+            .delete()
+            .eq('cartid', cartid)
+            .eq('productid', productid)
+            .select()
+            .single();
+        if (error) throw error;
+        return new cart_item(data.cartid, data.productid, data.quantity);
+    }
+
     static async getItemsByUserCartId(userid) {
         const cart = await shopping_cart.findByUserId(userid);
         if (!cart) {

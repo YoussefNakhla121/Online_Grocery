@@ -296,6 +296,19 @@ const api = {
         }
         return mockCart;
     },
+    async updateCartItem(userId, productId, quantity = 1) {
+        const res = await this.safeFetch(`/carts/${userId}/items/${productId}`, {
+            method: "PUT",
+            body: JSON.stringify({ quantity }),
+        });
+        return res;
+    },
+    async removeCartItem(userId, productId) {
+        const res = await this.safeFetch(`/carts/${userId}/items/${productId}`, {
+            method: "DELETE",
+        });
+        return res;
+    },
     async clearCart(userId) {
         const res = await this.safeFetch(`/carts/${userId}/items`, {
             method: "DELETE",
@@ -2514,18 +2527,43 @@ export default function App() {
         }
     };
 
-    const updateQuantity = (id, quantity) => {
+    const updateQuantity = async (id, quantity) => {
         setCart((prev) =>
             prev.map((item) => (item.id === id ? { ...item, quantity } : item)),
         );
+
+        if (!user) return;
+        const item = cart.find((item) => item.id === id);
+        if (!item) return;
+
+        try {
+            await api.updateCartItem(user.id, item.product.id, quantity);
+        } catch (error) {
+            console.warn("Unable to update cart quantity:", error);
+        }
     };
 
-    const removeFromCart = (id) => {
+    const removeFromCart = async (id) => {
+        const item = cart.find((item) => item.id === id);
         setCart((prev) => prev.filter((item) => item.id !== id));
+
+        if (!user || !item) return;
+        try {
+            await api.removeCartItem(user.id, item.product.id);
+        } catch (error) {
+            console.warn("Unable to remove cart item:", error);
+        }
     };
 
-    const clearCart = () => {
+    const clearCart = async () => {
         setCart([]);
+
+        if (!user) return;
+        try {
+            await api.clearCart(user.id);
+        } catch (error) {
+            console.warn("Unable to clear cart:", error);
+        }
     };
 
     const renderScreen = () => {
