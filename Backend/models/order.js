@@ -56,7 +56,6 @@ class OrderItem {
     }
 
     static async addItems(orderid, items) {
-        // items is an array of { productid, quantity }
         const rows = items.map(item => ({
             orderid,
             productid: item.productid,
